@@ -15,6 +15,7 @@ start_counter = time.perf_counter()
 ### REAL SSID Format::
 #ssid = """42["auth",{"session":"a:4:{s:10:\\"session_id\\";s:32:\\"aa11b2345c67d89e0f1g23456h78i9jk\\";s:10:\\"ip_address\\";s:11:\\"11.11.11.11\\";s:10:\\"user_agent\\";s:111:\\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\\";s:13:\\"last_activity\\";i:1234567890;}1234a5b678901cd2efghi34j5678kl90","isDemo":0,"uid":12345678,"platform":2}]"""
 #demo = False
+
 ### DEMO SSID Format::
 #ssid = """42["auth",{"session":"abcdefghijklm12nopqrstuvwx","isDemo":1,"uid":12345678,"platform":2}]"""
 #demo = True
@@ -95,9 +96,38 @@ def make_df(df0, history):
 
 
 def accelerator_oscillator(dataframe, fastPeriod=5, slowPeriod=34, smoothPeriod=5):
-    ao = ta.SMA(df["hl2"], timeperiod=fastPeriod) - ta.SMA(df["hl2"], timeperiod=slowPeriod)
+    ao = ta.SMA(dataframe["hl2"], timeperiod=fastPeriod) - ta.SMA(dataframe["hl2"], timeperiod=slowPeriod)
     ac = ta.SMA(ao, timeperiod=smoothPeriod)
     return ac
+
+
+def DeMarker(dataframe, Period=14):
+    dataframe['dem_high'] = dataframe['high'] - dataframe['high'].shift(1)
+    dataframe['dem_low'] = dataframe['low'].shift(1) - dataframe['low']
+    dataframe.loc[(dataframe['dem_high'] < 0), 'dem_high'] = 0
+    dataframe.loc[(dataframe['dem_low'] < 0), 'dem_low'] = 0
+
+    dem = ta.SMA(dataframe['dem_high'], Period) / (ta.SMA(dataframe['dem_high'], Period) + ta.SMA(dataframe['dem_low'], Period))
+    return dem
+
+
+def vortex_indicator(dataframe, Period=14):
+    vm_plus = abs(dataframe['high'] - dataframe['low'].shift(1))
+    vm_minus = abs(dataframe['low'] - dataframe['high'].shift(1))
+
+    tr1 = dataframe['high'] - dataframe['low']
+    tr2 = abs(dataframe['high'] - dataframe['close'].shift(1))
+    tr3 = abs(dataframe['low'] - dataframe['close'].shift(1))
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+
+    sum_vm_plus = vm_plus.rolling(window=Period).sum()
+    sum_vm_minus = vm_minus.rolling(window=Period).sum()
+    sum_tr = tr.rolling(window=Period).sum()
+
+    vi_plus = sum_vm_plus / sum_tr
+    vi_minus = sum_vm_minus / sum_tr
+
+    return vi_plus, vi_minus
 
 
 def strategie():
@@ -108,93 +138,137 @@ def strategie():
             else:
                 df = make_df(None, global_value.pairs[pair]['history'])
 
-            # Strategy 2
-            bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=13, stds=2)
-            df['bb_low'] = bollinger2['lower']
-            df['bb_mid'] = bollinger2['mid']
-            df['bb_up'] = bollinger2['upper']
-            df['rsi1'] = ta.RSI(df["close"], timeperiod=5)
-            df['rsi2'] = ta.RSI(df["close"], timeperiod=20)
-            df['buy'] = 0
-            df.loc[(
-                    (df['close'] < df['bb_low']) &
-                    (df['rsi1'] <= 30) &
-                    (df['rsi2'] <= 50)
-                ), 'buy'] = 1
-            df.loc[(
-                    (df['close'] > df['bb_up']) &
-                    (df['rsi1'] >= 70) &
-                    (df['rsi2'] >= 50)
-                ), 'buy'] = -1
-            if df.loc[len(df)-1]['buy'] != 0:
-                t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
-                t.start()
+            # Heikinashi
+            heikinashi = qtpylib.heikinashi(df)
+            df['ha_open'] = heikinashi['open']
+            df['ha_close'] = heikinashi['close']
+            df['ha_high'] = heikinashi['high']
+            df['ha_low'] = heikinashi['low']
 
-#             # Heikinashi
-#             heikinashi = qtpylib.heikinashi(df)
-#             df['ha_open'] = heikinashi['open']
-#             df['ha_close'] = heikinashi['close']
-#             df['ha_high'] = heikinashi['high']
-#             df['ha_low'] = heikinashi['low']
-#
-#             # Accelerator Oscillator Indicator
-#             df['hl2'] = (df['high'] + df['low']) / 2
-#             df['ac'] = accelerator_oscillator(df, 5, 34, 5)
-#
-#             # Aroon, Aroon Oscillator
-#             df['aroondown'], df['aroonup'] = ta.AROON(df['high'], df['low'], timeperiod=25)
-#
-#             # DeMarker
-#             df['dem'] = DeMarker(df, 14)
-#
-#             # MACD
-#             df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['ha_close'], 8, 26, 9)
-#
-#             # Rate of Change
-#             df['roc'] = ta.ROC(df, timeperiod=10)
-#
-#             # ADX
-#             df['adx'] = ta.ADX(df, timeperiod=14)
-#             df['plus_di'] = ta.PLUS_DI(df, timeperiod=14)
-#             df['minus_di'] = ta.MINUS_DI(df, timeperiod=14)
-#
-#             # ATR - Average True Range
-#             df['atr'] = ta.ATR(df, timeframe=14)
-#
-#             # Bollinger Bands
-#             bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=5, stds=1)
-#             df['bb_low'] = bollinger['lower']
-#             df['bb_mid'] = bollinger['mid']
-#             df['bb_up'] = bollinger['upper']
-#
-#             # CCI - Commodity Channel Index
-#             df['cci'] = ta.CCI(df, timeperiod=20)
-#
-#             # MOM - Momentum
-#             df['mom'] = ta.MOM(df, timeperiod=10)
-#
-#             # SAR - Parabolic SAR
-#             df['sar'] = ta.SAR(df, 0.02, 0.2)
-#
-#             # Moving Average
-#             df['ema'] = ta.EMA(df, timeperiod=10)
-#             df['sma'] = ta.SMA(df, timeperiod=10)
-#             df['wma'] = ta.WMA(df, timeperiod=10)
-#
-#             # RSI - Relative Strength Index
-#             df['rsi'] = ta.RSI(df["close"], timeperiod=14)
-#
-#             # Stochastic Oscillator
-#             df['slowk'], df['slowd'] = ta.STOCH(df['high'], df['low'], df['close'], fastk_period=14, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
-#
-#             # Williams' %R
-#             df['willr'] = ta.WILLR(df, timeperiod=14)
-#
+            # Accelerator Oscillator Indicator
+            df['hl2'] = (df['high'] + df['low']) / 2
+            df['ac'] = accelerator_oscillator(df, 5, 34, 5)
+
+            # Aroon, Aroon Oscillator
+            df['aroondown'], df['aroonup'] = ta.AROON(df['high'], df['low'], timeperiod=25)
+
+            # DeMarker
+            df['dem'] = DeMarker(df, 14)
+
+            # MACD
+            df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['ha_close'], 8, 26, 9)
+
+            # Rate of Change
+            df['roc'] = ta.ROC(df, timeperiod=10)
+
+            # ADX
+            df['adx'] = ta.ADX(df, timeperiod=14)
+            df['plus_di'] = ta.PLUS_DI(df, timeperiod=14)
+            df['minus_di'] = ta.MINUS_DI(df, timeperiod=14)
+
+            # ATR - Average True Range
+            df['atr'] = ta.ATR(df, timeframe=14)
+
+            # Bollinger Bands
+            bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=5, stds=1)
+            df['bb_low'] = bollinger['lower']
+            df['bb_mid'] = bollinger['mid']
+            df['bb_up'] = bollinger['upper']
+
+            # CCI - Commodity Channel Index
+            df['cci'] = ta.CCI(df, timeperiod=20)
+
+            # MOM - Momentum
+            df['mom'] = ta.MOM(df, timeperiod=10)
+
+            # SAR - Parabolic SAR
+            df['sar'] = ta.SAR(df, 0.02, 0.2)
+
+            # Moving Average
+            df['ema'] = ta.EMA(df, timeperiod=10)
+            df['sma'] = ta.SMA(df, timeperiod=10)
+            df['wma'] = ta.WMA(df, timeperiod=10)
+
+            # RSI - Relative Strength Index
+            df['rsi'] = ta.RSI(df["close"], timeperiod=14)
+
+            # Stochastic Oscillator
+            df['slowk'], df['slowd'] = ta.STOCH(df['high'], df['low'], df['close'], fastk_period=14, slowk_period=3, slowk_matype=0, slowd_period=3, slowd_matype=0)
+
+            # Williams' %R
+            df['willr'] = ta.WILLR(df, timeperiod=14)
+
             # Keltner Channel
             kc = qtpylib.keltner_channel(df, window=14, atrs=2)
             df['kc_upper'] = kc['upper']
             df['kc_lower'] = kc['lower']
             df['kc_mid'] = kc['mid']
+
+            # Vortex
+            df['vip'], df['vim'] = vortex_indicator(df, 14)
+
+            # Strategy 1
+            # df['ma1'] = ta.SMA(df["close"], timeperiod=5)
+            # df['ma2'] = ta.SMA(df["close"], timeperiod=13)
+            # df['ma3'] = ta.SMA(df["close"], timeperiod=45)
+            # df['rsi'] = ta.RSI(df["close"], timeperiod=5)
+            # df['ma12_cross'], df['ma13_cross'], df['ma23_cross'] = 0, 0, 0
+            # df['ma1_trend'], df['ma2_trend'], df['ma3_trend'] = 0, 0, 0
+            # df.loc[(df['ma1'] > df['ma1'].shift(1)), 'ma1_trend'] = 1
+            # df.loc[(df['ma1'] < df['ma1'].shift(1)), 'ma1_trend'] = -1
+            # df.loc[(df['ma2'] > df['ma2'].shift(1)), 'ma2_trend'] = 1
+            # df.loc[(df['ma2'] < df['ma2'].shift(1)), 'ma2_trend'] = -1
+            # df.loc[(df['ma3'] > df['ma3'].shift(1)), 'ma3_trend'] = 1
+            # df.loc[(df['ma3'] < df['ma3'].shift(1)), 'ma3_trend'] = -1
+            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma2'])), 'ma12_cross'] = 1
+            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma2'])), 'ma12_cross'] = -1
+            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma3'])), 'ma13_cross'] = 1
+            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma3'])), 'ma13_cross'] = -1
+            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma3'])), 'ma23_cross'] = 1
+            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma3'])), 'ma23_cross'] = -1
+            # df['buy'] = 0
+            # df.loc[(
+            #         (
+            #             (df['ma13_cross'] == -1) |
+            #             (df['ma23_cross'] == -1)
+            #         ) &
+            #         (df['ma3_trend'] == -1) &
+            #         (df['rsi'] <= 35)
+            #     ), 'buy'] = 1
+            # df.loc[(
+            #         (
+            #             (df['ma13_cross'] == 1) |
+            #             (df['ma23_cross'] == 1)
+            #         ) &
+            #         (df['ma3_trend'] == 1) &
+            #         (df['rsi'] >= 65)
+            #     ), 'buy'] = -1
+            # if df.loc[len(df)-1]['buy'] != 0:
+            #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
+            #     t.start()
+
+            # # Strategy 2
+            # bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=13, stds=2)
+            # df['bb_low'] = bollinger2['lower']
+            # df['bb_mid'] = bollinger2['mid']
+            # df['bb_up'] = bollinger2['upper']
+            # df['rsi1'] = ta.RSI(df["close"], timeperiod=5)
+            # df['rsi2'] = ta.RSI(df["close"], timeperiod=20)
+            # df['buy'] = 0
+            # df.loc[(
+            #         (df['close'] < df['bb_low']) &
+            #         (df['rsi1'] <= 30) &
+            #         (df['rsi2'] <= 50)
+            #     ), 'buy'] = 1
+            # df.loc[(
+            #         (df['close'] > df['bb_up']) &
+            #         (df['rsi1'] >= 70) &
+            #         (df['rsi2'] >= 50)
+            #     ), 'buy'] = -1
+            # if df.loc[len(df)-1]['buy'] != 0:
+            #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
+            #     t.start()
+
             # Strategy 3
             # heikinashi = qtpylib.heikinashi(df)
             # df['ha_open'] = heikinashi['open']
@@ -253,88 +327,6 @@ def strategie():
             # if df.loc[len(df)-1]['buy'] != 0:
             #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 120,))
             #     t.start()
-
-            # Strategy 1
-            # df['ma1'] = ta.SMA(df["close"], timeperiod=5)
-            # df['ma2'] = ta.SMA(df["close"], timeperiod=13)
-            # df['ma3'] = ta.SMA(df["close"], timeperiod=45)
-            # df['rsi'] = ta.RSI(df["close"], timeperiod=5)
-            # df['ma12_cross'], df['ma13_cross'], df['ma23_cross'] = 0, 0, 0
-            # df['ma1_trend'], df['ma2_trend'], df['ma3_trend'] = 0, 0, 0
-            # df.loc[(df['ma1'] > df['ma1'].shift(1)), 'ma1_trend'] = 1
-            # df.loc[(df['ma1'] < df['ma1'].shift(1)), 'ma1_trend'] = -1
-            # df.loc[(df['ma2'] > df['ma2'].shift(1)), 'ma2_trend'] = 1
-            # df.loc[(df['ma2'] < df['ma2'].shift(1)), 'ma2_trend'] = -1
-            # df.loc[(df['ma3'] > df['ma3'].shift(1)), 'ma3_trend'] = 1
-            # df.loc[(df['ma3'] < df['ma3'].shift(1)), 'ma3_trend'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma2'])), 'ma12_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma2'])), 'ma12_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma3'])), 'ma13_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma3'])), 'ma13_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma3'])), 'ma23_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma3'])), 'ma23_cross'] = -1
-            # df['buy'] = 0
-            # df.loc[(
-            #         (
-            #             (df['ma13_cross'] == -1) |
-            #             (df['ma23_cross'] == -1)
-            #         ) &
-            #         (df['ma3_trend'] == -1) &
-            #         (df['rsi'] <= 35)
-            #     ), 'buy'] = 1
-            # df.loc[(
-            #         (
-            #             (df['ma13_cross'] == 1) |
-            #             (df['ma23_cross'] == 1)
-            #         ) &
-            #         (df['ma3_trend'] == 1) &
-            #         (df['rsi'] >= 65)
-            #     ), 'buy'] = -1
-            # if df.loc[len(df)-1]['buy'] != 0:
-            #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
-            #     t.start()
-
-            # bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=13, stds=2)
-            # df['bb_low'] = bollinger2['lower']
-            # df['bb_mid'] = bollinger2['mid']
-            # df['bb_up'] = bollinger2['upper']
-
-            # df['ma1'] = ta.SMA(df["close"], timeperiod=5)
-            # df['ma2'] = ta.SMA(df["close"], timeperiod=13)
-            # df['ma3'] = ta.SMA(df["close"], timeperiod=45)
-            # df['rsi'] = ta.RSI(df["close"], timeperiod=5)
-            # df['ma12_cross'], df['ma13_cross'], df['ma23_cross'] = 0, 0, 0
-            # df['ma1_trend'], df['ma2_trend'], df['ma3_trend'] = 0, 0, 0
-            # df.loc[(df['ma1'] > df['ma1'].shift(1)), 'ma1_trend'] = 1
-            # df.loc[(df['ma1'] < df['ma1'].shift(1)), 'ma1_trend'] = -1
-            # df.loc[(df['ma2'] > df['ma2'].shift(1)), 'ma2_trend'] = 1
-            # df.loc[(df['ma2'] < df['ma2'].shift(1)), 'ma2_trend'] = -1
-            # df.loc[(df['ma3'] > df['ma3'].shift(1)), 'ma3_trend'] = 1
-            # df.loc[(df['ma3'] < df['ma3'].shift(1)), 'ma3_trend'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma2'])), 'ma12_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma2'])), 'ma12_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma3'])), 'ma13_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma3'])), 'ma13_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma3'])), 'ma23_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma3'])), 'ma23_cross'] = -1
-
-            # df['bb_cross'] = 0
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['bb_mid'])), 'bb_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['bb_mid'])), 'bb_cross'] = -1
-            # vortex = TA.VORTEX(df, 11)
-            # df['VIm'] = vortex['VIm']
-            # df['VIp'] = vortex['VIp']
-            # kc = TA.KC(df, period=15, atr_period=12, kc_mult=2)
-            # df['KC_UPPER'] = kc['KC_UPPER']
-            # df['KC_LOWER'] = kc['KC_LOWER']
-            # df['VIc'] = 0
-            # df.loc[(qtpylib.crossed_above(df['VIp'], df['VIm'])), 'VIc'] = 1
-            # df.loc[(qtpylib.crossed_above(df['VIm'], df['VIp'])), 'VIc'] = -1
-            # df['pct'] = 100 / df['open'] * df['close'] - 100
-            # df['cross'] = 0
-            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma1'])), 'cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma1'])), 'cross'] = -1
-            # pair['dataframe'] = df
 
 
 def prepare():
@@ -400,6 +392,6 @@ def start():
 if __name__ == "__main__":
     start()
     end_counter = time.perf_counter()
-    rund = math.ceil(end_counter - start_counter)
-    print(f'CPU-gebundene Task-Zeit: {rund} {end_counter - start_counter} Sekunden')
+    # rund = math.ceil(end_counter - start_counter)
+    print(f'CPU-gebundene Task-Zeit: {end_counter - start_counter} Sekunden')
 

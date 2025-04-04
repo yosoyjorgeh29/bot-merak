@@ -1,0 +1,8 @@
+websocket-client>=1.6.1
+requests>=2.31.0
+python-dateutil>=2.8.2
+logging
+tzlocal>=5.1
+websockets>=12.0
+pandas>=2.1.3
+colorama>=0.4.6

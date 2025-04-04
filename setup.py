@@ -8,12 +8,12 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="pocketoptionapi",
-    version="0.1.0",
-    author="AdminhuDev",
-    description="API para integração com PocketOption",
+    version="0.1.1",
+    author="Mastaaa1987",
+    description="API for integration with PocketOption",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/AdminhuDev/pocketoptionapi",
+    url="https://github.com/Mastaaa1987/PocketOptionAPI-v2",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

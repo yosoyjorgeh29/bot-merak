@@ -21,13 +21,13 @@
 
 ### Via pip (recommended):
 ```bash
-pip install git+https://github.com/Mastaaa1987/pocketoptionapi.git
+pip install git+https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
 ```
 
 ### For development:
 ```bash
-git clone https://github.com/Mastaaa1987/pocketoptionapi.git
-cd pocketoptionapi
+git clone https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
+cd PocketOptionAPI-v2
 pip install -e .
 ```
 

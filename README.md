@@ -19,16 +19,16 @@
 
 ## 🛠️ Installation
 
-### Via pip (recommended):
-```bash
-pip install git+https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
-```
-
-### For development:
+### For development (recommended):
 ```bash
 git clone https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
 cd PocketOptionAPI-v2
 pip install -e .
+```
+
+### Via pip:
+```bash
+pip install git+https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
 ```
 
 ## 📖 Basic Use

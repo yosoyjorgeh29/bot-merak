@@ -1,4 +1,4 @@
-import asyncio, datetime, time, json, logging, threading, requests, ssl, atexit
+import asyncio, datetime, time, json, threading, requests, ssl, atexit
 from collections import deque
 from pocketoptionapi.ws.client import WebsocketClient
 from pocketoptionapi.ws.channels.get_balances import *
@@ -57,7 +57,7 @@ class PocketOptionAPI(object):
         return global_value.closed_deals
 
     def send_websocket_request(self, name, msg, request_id="", no_force_send=True):
-        logger = logging.getLogger(__name__)
+        # logger = logging.getLogger(__name__)
 
         data = f'42{json.dumps(msg)}'
 
@@ -70,7 +70,7 @@ class PocketOptionAPI(object):
 
         loop.run_until_complete(self.websocket.send_message(data))
 
-        logger.debug(data)
+        global_value.logger(data, "DEBUG")
         global_value.ssl_Mutual_exclusion_write = False
 
     def start_websocket(self):
@@ -143,10 +143,10 @@ class PocketOptionAPI(object):
                 self.sync.synchronize(self.time_sync.server_timestamp)
                 self.sync_datetime = self.sync.get_synced_datetime()
             else:
-                logging.error("timesync não está definido")
+                global_value.logger("timesync is not set", "ERROR")
                 self.sync_datetime = None
         except Exception as e:
-            logging.error(e)
+            global_value.logger(e, "ERROR")
             self.sync_datetime = None
 
         return self.sync_datetime

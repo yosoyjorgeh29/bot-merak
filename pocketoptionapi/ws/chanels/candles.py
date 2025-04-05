@@ -1,8 +1,7 @@
 """Module for Pocket option candles websocket chanel."""
 
 from pocketoptionapi.ws.chanels.base import Base
-import time
-import random
+import time, random
 
 
 def index_num():

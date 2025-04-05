@@ -1,8 +1,5 @@
-import datetime
-import json
-import time
+import datetime, json, time
 from pocketoptionapi.ws.channels.base import Base
-import logging
 import pocketoptionapi.global_value as global_value
 from pocketoptionapi.expiration import get_expiration_time
 

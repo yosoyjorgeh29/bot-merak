@@ -1,3 +1,5 @@
+from datetime import datetime
+
 # Global variables
 websocket_is_connected = False
 # try fix ssl.SSLEOFError: EOF occurred in violation of protocol (_ssl.c:2361)
@@ -24,5 +26,13 @@ closed_deals = []
 stat = []
 pairs = {}
 
+loglevel = 'INFO'
+
 # To get the payment details for the different pairs
 PayoutData = None
+
+def logger(message, lvl):
+    if loglevel == lvl:
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        print('%s :: %s' %(str(dt), str(message)))
+    return

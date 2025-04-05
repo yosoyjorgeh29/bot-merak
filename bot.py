@@ -1,4 +1,4 @@
-import time, logging, math, asyncio, json, threading
+import time, math, asyncio, json, threading
 from datetime import datetime
 from pocketoptionapi.stable_api import PocketOption
 import pocketoptionapi.global_value as global_value
@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
-logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
+# logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 
 # Session configuration
 start_counter = time.perf_counter()
@@ -56,7 +56,7 @@ def get_df():
         for pair in global_value.pairs:
             i += 1
             df = api.get_candles(pair, period)
-            print('%s (%s/%s)' % (str(pair), str(i), str(len(global_value.pairs))))
+            global_value.logger('%s (%s/%s)' % (str(pair), str(i), str(len(global_value.pairs))), "INFO")
             time.sleep(1)
         return True
     except:
@@ -64,12 +64,12 @@ def get_df():
 
 
 def buy(amount, pair, action, expiration):
-    print('%s, %s, %s, %s' % (str(amount), str(pair), str(action), str(expiration)))
+    global_value.logger('%s, %s, %s, %s' % (str(amount), str(pair), str(action), str(expiration)), "INFO")
     result = api.buy(amount=amount, active=pair, action=action, expirations=expiration)
     i = result[1]
     result = api.check_win(i)
     if result:
-        print(result)
+        global_value.logger(str(result), "INFO")
 
 
 def make_df(df0, history):
@@ -373,8 +373,8 @@ def wait():
         elif datetime.now().second >= 10: dt += 15
         elif datetime.now().second >= 5: dt += 10
         else: dt += 5
-    print('====================================')
-    print('Sleeping %s Seconds' % str(dt - int(datetime.now().timestamp())))
+    global_value.logger('====================================', "INFO")
+    global_value.logger('Sleeping %s Seconds' % str(dt - int(datetime.now().timestamp())), "INFO")
     return dt - int(datetime.now().timestamp())
 
 
@@ -382,6 +382,8 @@ def start():
     while global_value.websocket_is_connected is False:
         time.sleep(0.1)
     time.sleep(2)
+    # saldo = api.get_balance()
+    # print('Real Live Balance: %s' % str(saldo))
     prep = prepare()
     if prep:
         while True:
@@ -393,5 +395,6 @@ if __name__ == "__main__":
     start()
     end_counter = time.perf_counter()
     # rund = math.ceil(end_counter - start_counter)
-    print(f'CPU-gebundene Task-Zeit: {end_counter - start_counter} Sekunden')
+    #print(f'CPU-gebundene Task-Zeit: {end_counter - start_counter} Sekunden')
+    global_value.logger("CPU-gebundene Task-Zeit: %s Sekunden" % str(int(end_counter - start_counter)), "INFO")
 

@@ -1,4 +1,4 @@
-import asyncio, threading, sys, json, time, logging, operator
+import asyncio, threading, sys, json, time, operator
 from datetime import datetime
 from tzlocal import get_localzone
 from pocketoptionapi.api import PocketOptionAPI
@@ -10,7 +10,7 @@ import pandas as pd
 
 local_zone_name = get_localzone()
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 def get_balance():
     return global_value.balance
@@ -23,7 +23,8 @@ class PocketOption:
                      3600, 7200, 14400, 28800, 43200, 86400, 604800, 2592000]
         global_value.SSID = ssid
         global_value.DEMO = demo
-        print(f"Modo Demo: {demo}")
+        # print(f"Modo Demo: {demo}")
+        global_value.logger("Modo Demo: %s" % str(demo), "INFO")
         self.suspend = 0.5
         self.thread = None
         self.subscribe_candle = []
@@ -68,9 +69,11 @@ class PocketOption:
             if global_value.websocket_is_connected:
                 asyncio.run(self.api.close())
                 global_value.websocket_is_connected = False
-                logger.debug("WebSocket connection closed successfully.")
+                # logger.debug("WebSocket connection closed successfully.")
+                global_value.logger("WebSocket connection closed successfully.", "DEBUG")
             else:
-                logger.debug("WebSocket was not connected.")
+                # logger.debug("WebSocket was not connected.")
+                global_value.logger("WebSocket was not connected.", "DEBUG")
 
             if self.loop is not None:
                 for task in asyncio.all_tasks(self.loop):
@@ -79,14 +82,17 @@ class PocketOption:
                 if not self.loop.is_closed():
                     self.loop.stop()
                     self.loop.close()
-                    logger.debug("Event loop stopped and closed successfully.")
+                    # logger.debug("Event loop stopped and closed successfully.")
+                    global_value.logger("Event loop stopped and closed successfully.", "DEBUG")
 
             if self.api.websocket_thread is not None and self.api.websocket_thread.is_alive():
                 self.api.websocket_thread.join()
-                logger.debug("WebSocket thread closed successfully.")
+                # logger.debug("WebSocket thread closed successfully.")
+                global_value.logger("WebSocket thread closed successfully.", "DEBUG")
 
         except Exception as e:
-            logging.error(f"Error during disconnection: {e}")
+            # logging.error(f"Error during disconnection: {e}")
+            global_value.logger("Error during disconnection: %s" % str(e), "ERROR")
 
     def connect(self):
         try:
@@ -94,7 +100,8 @@ class PocketOption:
             websocket_thread.start()
 
         except Exception as e:
-            logging.error(f"Error connecting: {e}")
+            # logging.error(f"Error connecting: {e}")
+            global_value.logger("Error connecting: %s" % str(e), "ERROR")
             return False
         return True
     
@@ -137,7 +144,8 @@ class PocketOption:
 
         for pack in global_value.stat:
             if pack[0] == ido:
-               logger.debug('Closed Order',pack[1])
+               # logger.debug('Closed Order',pack[1])
+               global_value.logger("Closed Order %s" % str(pack[1]), "DEBUG")
 
         return pack[0]
     
@@ -152,7 +160,8 @@ class PocketOption:
             else:
                 self.api.buy_multi_option[req_id]["id"] = None
         except Exception as e:
-            logger.error(f"Error initializing buy_multi_option: {e}")
+            # logger.error(f"Error initializing buy_multi_option: {e}")
+            global_value.logger("Error initializing buy_multi_option: %s" % str(e), "ERROR")
             return False, None
 
         global_value.order_data = None
@@ -167,9 +176,11 @@ class PocketOption:
                 break
             if time.time() - start_t >= 5:
                 if isinstance(global_value.order_data, dict) and "error" in global_value.order_data:
-                    logger.error(global_value.order_data["error"])
+                    # logger.error(global_value.order_data["error"])
+                    global_value.logger(str(global_value.order_data["error"]), "ERROR")
                 else:
-                    logger.error("Unknown error occurred during purchase operation")
+                    # logger.error("Unknown error occurred during purchase operation")
+                    global_value.logger("Unknown error occurred during purchase operation", "ERROR")
                 return False, None
             time.sleep(0.1)
 
@@ -188,7 +199,8 @@ class PocketOption:
                 pass
 
             if time.time() - start_t >= 180:
-                logger.error("Timeout: Unable to retrieve order information in time.")
+                # logger.error("Timeout: Unable to retrieve order information in time.")
+                global_value.logger("Timeout: Unable to retrieve order information in time.", "ERROR")
                 return None, "unknown"
 
             time.sleep(0.1)
@@ -197,7 +209,8 @@ class PocketOption:
             status = "win" if order_info["profit"] > 0 else "loose"
             return order_info["profit"], status
         else:
-            logger.error("Invalid order information retrieved.")
+            # logger.error("Invalid order information retrieved.")
+            global_value.logger("Invalid order information retrieved.", "ERROR")
             return None, "unknown"
 
     @staticmethod
@@ -240,7 +253,8 @@ class PocketOption:
                             break
 
                     except Exception as e:
-                        logger.error(e)
+                        # logger.error(e)
+                        global_value.logger(str(e), "ERROR")
 
                 all_candles = sorted(all_candles, key=lambda x: x["time"])
             if period > 30:
@@ -265,7 +279,8 @@ class PocketOption:
                             break
 
                     except Exception as e:
-                        logging.error(e)
+                        # logging.error(e)
+                        global_value.logger(str(e), "ERROR")
 
                 ext_candles = sorted(ext_candles, key=lambda x: x["time"])
                 ext_df = pd.DataFrame(ext_candles)
@@ -303,7 +318,8 @@ class PocketOption:
                 return df_candles
 
         except:
-            print("No except")
+            # print("No except")
+            global_value.logger("No except", "DEBUG")
             return None
 
     @staticmethod
@@ -374,7 +390,8 @@ class PocketOption:
                         break
 
                 except Exception as e:
-                    logging.error(e)
+                    # logging.error(e)
+                    global_value.logger(str(e), "ERROR")
             c0, c1 = [], []
             if period < 60:
                 self.api.history_data = None
@@ -395,7 +412,8 @@ class PocketOption:
                             break
 
                     except Exception as e:
-                        logger.error(e)
+                        # logger.error(e)
+                        global_value.logger(str(e), "ERROR")
 
             if len(his['candles']) > 0:
                 for can in his['candles']:
@@ -456,7 +474,8 @@ class PocketOption:
                             break
 
                     except Exception as e:
-                        logging.error(e)
+                        # logging.error(e)
+                        global_value.logger(str(e), "ERROR")
 
                 all_candles = sorted(all_candles, key=lambda x: x["time"])
 
@@ -476,5 +495,6 @@ class PocketOption:
 
             return df_resampled
         except:
-            print("In except")
+            # print("In except")
+            global_value.logger("In except", "DEBUG")
             return None

@@ -1,7 +1,6 @@
 """Module for Pocket Option TimeSync websocket object."""
 
-import time
-import datetime
+import time, datetime
 
 from pocketoptionapi.ws.objects.base import Base
 

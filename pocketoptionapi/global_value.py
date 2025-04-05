@@ -32,7 +32,13 @@ loglevel = 'INFO'
 PayoutData = None
 
 def logger(message, lvl):
-    if loglevel == lvl:
+    if loglevel == 'DEBUG':
         dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        print('%s :: %s' %(str(dt), str(message)))
+        print('%s :[DEBUG]: %s' %(str(dt), str(message)))
+    elif loglevel == lvl:
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        print('%s :[%s]: %s' %(str(dt), str(lvl), str(message)))
+    elif lvl == 'ERROR':
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        print('%s :[ERROR]: %s' %(str(dt), str(message)))
     return

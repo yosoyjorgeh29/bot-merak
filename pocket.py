@@ -11,9 +11,6 @@ start = time.perf_counter()
 
 min_payout = 85
 
-ssid = '42["auth",{"session":"a:4:{s:10:\\"session_id\\";s:32:\\"fc34dbc42d52cb1b5e1017bb3f8e314b\\";s:10:\\"ip_address\\";s:11:\\"91.23.111.7\\";s:10:\\"user_agent\\";s:111:\\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\\";s:13:\\"last_activity\\";i:1742700847;}67d6703adf6c7634b07e10704ab2b6fe","isDemo":0,"uid":94923958,"platform":2}]'
-demo = '42["auth",{"session":"bacapqlqjrpsi95kmmespudctk","isDemo":1,"uid":94923958,"platform":2}]'
-
 api = PocketOptionAsync(demo)
 
 async def get_payout(dat):
@@ -73,8 +70,6 @@ async def main(data):
     #print(candles)
 
 if __name__ == '__main__':
-    #ssid = "42[\"auth\",{\"session\":\"a:4:{s:10:\"session_id\";s:32:\"fc34dbc42d52cb1b5e1017bb3f8e314b\";s:10:\"ip_address\";s:11:\"91.23.111.7\";s:10:\"user_agent\";s:111:\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\";s:13:\"last_activity\";i:1742700847;}67d6703adf6c7634b07e10704ab2b6fe\",\"isDemo\":0,\"uid\":94923958,\"platform\":2}]"
-    #ssid = '42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"fc34dbc42d52cb1b5e1017bb3f8e314b\";s:10:\"ip_address\";s:11:\"91.23.111.7\";s:10:\"user_agent\";s:111:\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36\";s:13:\"last_activity\";i:1742700847;}67d6703adf6c7634b07e10704ab2b6fe","isDemo":0,"uid":94923958,"platform":2}]'
     data = []
     asyncio.run(main(data))
 

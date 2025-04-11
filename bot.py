@@ -40,8 +40,8 @@ def get_payout():
             # |0| |  1  |  |  2  |  |  3  | |4 | 5 |6 | 7 | 8| 9| 10 |11| 12| 13        | 14   | | 15,                                                                                                                                                                                     |  16| 17| 18        |
             # [5, '#AAPL', 'Apple', 'stock', 2, 50, 60, 30, 3, 0, 170, 0, [], 1743724800, False, [{'time': 60}, {'time': 120}, {'time': 180}, {'time': 300}, {'time': 600}, {'time': 900}, {'time': 1800}, {'time': 2700}, {'time': 3600}, {'time': 7200}, {'time': 10800}, {'time': 14400}], -1, 60, 1743784500],
             if len(pair) == 19:
-                #if pair[14] == True and pair[5] >= min_payout and "_otc" not in pair[1] and pair[3] == "currency":
-                if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:
+                #if pair[14] == True and pair[5] >= min_payout and "_otc" not in pair[1] and pair[3] == "currency": # Get all non OTC Currencies with min_payout
+                if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:                                # Get all OTC Markets with min_payout
                     p = {}
                     p['payout'] = pair[5]
                     p['type'] = pair[3]

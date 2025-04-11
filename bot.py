@@ -152,7 +152,7 @@ def strategie():
             # for r in results:
             #     print('%s, %s, %s' %(str(r.jaw), str(r.teeth), str(r.lips)))
 
-            # Strategy 7 period: 60
+            # Strategy 7, period: 60
             df['exith'] = ta.WMA(2 * ta.WMA(df['high'], int(15 / 2)) - ta.WMA(df['high'], 15), round(math.sqrt(15)))
             df['exitl'] = ta.WMA(2 * ta.WMA(df['low'], int(15 / 2)) - ta.WMA(df['low'], 15), round(math.sqrt(15)))
             df['hlv3'], df['buy'] = 0, 0
@@ -166,9 +166,8 @@ def strategie():
             if df.loc[len(df)-1]['buy'] != 0:
                 t = threading.Thread(target=buy2, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
                 t.start()
-            print(df)
 
-            # # Strategy 6 period: 60
+            # # Strategy 6, period: 60
             # df['macd'], df['macdsignal'], df['macdhist'] = ta.MACD(df['close'], 10, 15, 5)
             # df['vip'], df['vim'] = vortex_indicator(df, 5)
             # df['vcross'], df['mcross'], df['buy'] = 0, 0, 0
@@ -212,7 +211,7 @@ def strategie():
             #     t = threading.Thread(target=buy2, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
             #     t.start()
 
-            # # Strategy 5 period: 120
+            # # Strategy 5, period: 120
             # heikinashi = qtpylib.heikinashi(df)
             # df['open'] = heikinashi['open']
             # df['close'] = heikinashi['close']
@@ -270,7 +269,7 @@ def strategie():
             #     t = threading.Thread(target=buy2, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 120,))
             #     t.start()
 
-            # Strategy 4
+            # Strategy 4, period: 60
             # df['ma1'] = ta.SMA(df["close"], timeperiod=4)
             # df['ma2'] = ta.SMA(df["close"], timeperiod=45)
             # # df['ma1'] = ta.EMA(df["close"], timeperiod=8)
@@ -289,7 +288,7 @@ def strategie():
             #     t = threading.Thread(target=buy2, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 180,))
             #     t.start()
 
-            # Strategy 3
+            # Strategy 3, period: 60
             # heikinashi = qtpylib.heikinashi(df)
             # df['ha_open'] = heikinashi['open']
             # df['ha_close'] = heikinashi['close']
@@ -345,7 +344,7 @@ def strategie():
             #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
             #     t.start()
 
-            # Strategy 1
+            # Strategy 1, period: 60
             # df['ma1'] = ta.SMA(df["close"], timeperiod=5)
             # df['ma2'] = ta.SMA(df["close"], timeperiod=13)
             # df['ma3'] = ta.SMA(df["close"], timeperiod=45)
@@ -385,7 +384,7 @@ def strategie():
             #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
             #     t.start()
 
-            # Strategy 2
+            # Strategy 2, period: 60
             # bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=13, stds=2)
             # df['bb_low'] = bollinger2['lower']
             # df['bb_mid'] = bollinger2['mid']
@@ -406,7 +405,10 @@ def strategie():
             # if df.loc[len(df)-1]['buy'] != 0:
             #     t = threading.Thread(target=buy, args=(100, pair, "call" if df.loc[len(df)-1]['buy'] == 1 else "put", 60,))
             #     t.start()
-
+#
+#           ====================================================================================================================
+#           Indicators =========================================================================================================
+#           ====================================================================================================================
 #             # Heikinashi
 #             heikinashi = qtpylib.heikinashi(df)
 #             df['ha_open'] = heikinashi['open']
@@ -475,48 +477,6 @@ def strategie():
 #
 #             # Vortex
 #             df['vip'], df['vim'] = vortex_indicator(df, 14)
-
-            # bollinger2 = qtpylib.bollinger_bands(qtpylib.typical_price(df), window=13, stds=2)
-            # df['bb_low'] = bollinger2['lower']
-            # df['bb_mid'] = bollinger2['mid']
-            # df['bb_up'] = bollinger2['upper']
-
-            # df['ma1'] = ta.SMA(df["close"], timeperiod=5)
-            # df['ma2'] = ta.SMA(df["close"], timeperiod=13)
-            # df['ma3'] = ta.SMA(df["close"], timeperiod=45)
-            # df['rsi'] = ta.RSI(df["close"], timeperiod=5)
-            # df['ma12_cross'], df['ma13_cross'], df['ma23_cross'] = 0, 0, 0
-            # df['ma1_trend'], df['ma2_trend'], df['ma3_trend'] = 0, 0, 0
-            # df.loc[(df['ma1'] > df['ma1'].shift(1)), 'ma1_trend'] = 1
-            # df.loc[(df['ma1'] < df['ma1'].shift(1)), 'ma1_trend'] = -1
-            # df.loc[(df['ma2'] > df['ma2'].shift(1)), 'ma2_trend'] = 1
-            # df.loc[(df['ma2'] < df['ma2'].shift(1)), 'ma2_trend'] = -1
-            # df.loc[(df['ma3'] > df['ma3'].shift(1)), 'ma3_trend'] = 1
-            # df.loc[(df['ma3'] < df['ma3'].shift(1)), 'ma3_trend'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma2'])), 'ma12_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma2'])), 'ma12_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['ma3'])), 'ma13_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['ma3'])), 'ma13_cross'] = -1
-            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma3'])), 'ma23_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma3'])), 'ma23_cross'] = -1
-
-            # df['bb_cross'] = 0
-            # df.loc[(qtpylib.crossed_above(df['ma1'], df['bb_mid'])), 'bb_cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma1'], df['bb_mid'])), 'bb_cross'] = -1
-            # vortex = TA.VORTEX(df, 11)
-            # df['VIm'] = vortex['VIm']
-            # df['VIp'] = vortex['VIp']
-            # kc = TA.KC(df, period=15, atr_period=12, kc_mult=2)
-            # df['KC_UPPER'] = kc['KC_UPPER']
-            # df['KC_LOWER'] = kc['KC_LOWER']
-            # df['VIc'] = 0
-            # df.loc[(qtpylib.crossed_above(df['VIp'], df['VIm'])), 'VIc'] = 1
-            # df.loc[(qtpylib.crossed_above(df['VIm'], df['VIp'])), 'VIc'] = -1
-            # df['pct'] = 100 / df['open'] * df['close'] - 100
-            # df['cross'] = 0
-            # df.loc[(qtpylib.crossed_above(df['ma2'], df['ma1'])), 'cross'] = 1
-            # df.loc[(qtpylib.crossed_below(df['ma2'], df['ma1'])), 'cross'] = -1
-            # pair['dataframe'] = df
 
 
 def prepare():

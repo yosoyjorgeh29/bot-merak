@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
-# logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
+global_value.loglevel = 'INFO'
 
 # Session configuration
 start_counter = time.perf_counter()
@@ -40,12 +40,15 @@ def get_payout():
             # |0| |  1  |  |  2  |  |  3  | |4 | 5 |6 | 7 | 8| 9| 10 |11| 12| 13        | 14   | | 15,                                                                                                                                                                                     |  16| 17| 18        |
             # [5, '#AAPL', 'Apple', 'stock', 2, 50, 60, 30, 3, 0, 170, 0, [], 1743724800, False, [{'time': 60}, {'time': 120}, {'time': 180}, {'time': 300}, {'time': 600}, {'time': 900}, {'time': 1800}, {'time': 2700}, {'time': 3600}, {'time': 7200}, {'time': 10800}, {'time': 14400}], -1, 60, 1743784500],
             if len(pair) == 19:
-                #if pair[14] == True and pair[5] >= min_payout and "_otc" not in pair[1] and pair[3] == "currency": # Get all non OTC Currencies with min_payout
-                if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:                                # Get all OTC Markets with min_payout
+                global_value.logger('id: %s, name: %s, typ: %s, active: %s' % (str(pair[1]), str(pair[2]), str(pair[3]), str(pair[14])), "DEBUG")
+                #if pair[14] == True and pair[5] >= min_payout and "_otc" not in pair[1] and pair[3] == "currency":         # Get all non OTC Currencies with min_payout
+                if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:                                       # Get all OTC Markets with min_payout
+                #if pair[14] == True and pair[3] == "cryptocurrency" and pair[5] >= min_payout and "_otc" not in pair[1]:   # Get all non OTC Cryptocurrencies
                     p = {}
                     p['payout'] = pair[5]
                     p['type'] = pair[3]
                     global_value.pairs[pair[1]] = p
+                    break
         return True
     except:
         return False
@@ -58,6 +61,7 @@ def get_df():
             i += 1
             df = api.get_candles(pair, period)
             global_value.logger('%s (%s/%s)' % (str(pair), str(i), str(len(global_value.pairs))), "INFO")
+            global_value.logger(df, "DEBUG")
             time.sleep(1)
         return True
     except:
@@ -83,6 +87,7 @@ def make_df(df0, history):
     df1 = df1.sort_values(by='time').reset_index(drop=True)
     df1['time'] = pd.to_datetime(df1['time'], unit='s', utc=True)
     df1.set_index('time', inplace=True)
+    df1.index = df1.index.floor('1s')
 
     df = df1['price'].resample(f'{period}s').ohlc()
     df.reset_index(inplace=True)

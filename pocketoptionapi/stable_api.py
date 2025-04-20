@@ -23,7 +23,6 @@ class PocketOption:
                      3600, 7200, 14400, 28800, 43200, 86400, 604800, 2592000]
         global_value.SSID = ssid
         global_value.DEMO = demo
-        # print(f"Modo Demo: {demo}")
         global_value.logger("Modo Demo: %s" % str(demo), "INFO")
         self.suspend = 0.5
         self.thread = None
@@ -52,11 +51,14 @@ class PocketOption:
         self.SESSION_HEADER = header
         self.SESSION_COOKIE = cookie
 
-    def get_async_order(self, buy_order_id):
-        if self.api.order_async["deals"][0]["id"] == buy_order_id:
-            return self.api.order_async["deals"][0]
+    def get_async_order(self, buy_order_id=None):
+        if buy_order_id:
+            if self.api.order_async["deals"][0]["id"] == buy_order_id:
+                return self.api.order_async["deals"][0]
+            else:
+                return None
         else:
-            return None
+            return self.api.order_async
 
     def get_async_order_id(self, buy_order_id):
         return self.api.order_async["deals"][0][buy_order_id]
@@ -160,14 +162,12 @@ class PocketOption:
             else:
                 self.api.buy_multi_option[req_id]["id"] = None
         except Exception as e:
-            # logger.error(f"Error initializing buy_multi_option: {e}")
             global_value.logger("Error initializing buy_multi_option: %s" % str(e), "ERROR")
             return False, None
 
         global_value.order_data = None
         global_value.result = None
 
-        #print(amount, active, action, expirations, req_id)
         self.api.buyv3(amount, active, action, expirations, req_id)
 
         start_t = time.time()
@@ -176,17 +176,18 @@ class PocketOption:
                 break
             if time.time() - start_t >= 5:
                 if isinstance(global_value.order_data, dict) and "error" in global_value.order_data:
-                    # logger.error(global_value.order_data["error"])
                     global_value.logger(str(global_value.order_data["error"]), "ERROR")
                 else:
-                    # logger.error("Unknown error occurred during purchase operation")
                     global_value.logger("Unknown error occurred during purchase operation", "ERROR")
                 return False, None
             time.sleep(0.1)
 
         return global_value.result, global_value.order_data.get("id", None)
 
-    def check_win(self, id_number):
+    def check_win(self, id_number=None):
+        if not id_number:
+            order_info = self.get_async_order()
+            return order_info
         start_t = time.time()
         order_info = None
 
@@ -224,108 +225,10 @@ class PocketOption:
     def get_deals(self):
         return self.api.GetClosedDeals()
 
-    def get_candles2(self, active, period, start_time=None, count=6000, count_request=1):
-        try:
-            if start_time is None:
-                time_sync = self.get_server_timestamp()
-                time_red = self.last_time(time_sync, period)
-            else:
-                time_red = start_time
-                time_sync = self.get_server_timestamp()
-
-            all_candles = []
-
-            for _ in range(count_request):
-                self.api.history_data = None
-
-                while True:
-                    try:
-                        self.api.getcandles(active, period, time_red)
-
-                        for i in range(1, 100):
-                            if self.api.history_data is None:
-                                time.sleep(0.1)
-                            elif self.api.history_data is not None or i == 99:
-                                break
-
-                        if self.api.history_data is not None:
-                            all_candles.extend(self.api.history_data)
-                            break
-
-                    except Exception as e:
-                        # logger.error(e)
-                        global_value.logger(str(e), "ERROR")
-
-                all_candles = sorted(all_candles, key=lambda x: x["time"])
-            if period > 30:
-                for i in range(0, len(all_candles)):
-                    del all_candles[i]['symbol_id']
-                    del all_candles[i]['asset']
-
-                self.api.history_data = None
-                ext_candles = []
-                while True:
-                    try:
-                        self.api.getcandles(active, 30, time_red)
-
-                        for i in range(1, 100):
-                            if self.api.history_data is None:
-                                time.sleep(0.1)
-                            elif self.api.history_data is not None or i == 99:
-                                break
-
-                        if self.api.history_data is not None:
-                            ext_candles.extend(self.api.history_data)
-                            break
-
-                    except Exception as e:
-                        # logging.error(e)
-                        global_value.logger(str(e), "ERROR")
-
-                ext_candles = sorted(ext_candles, key=lambda x: x["time"])
-                ext_df = pd.DataFrame(ext_candles)
-                ext_df = ext_df.sort_values(by='time').reset_index(drop=True)
-                ext_df['time'] = pd.to_datetime(ext_df['time'], unit='s', utc=True)
-                ext_df.set_index('time', inplace=True)
-                ext_df.index = ext_df.index.floor('1s')
-                ext_resampled = ext_df['price'].resample(f'{period}s').ohlc()
-                ext_resampled.reset_index(inplace=True)
-
-            df_candles = pd.DataFrame(all_candles)
-
-            df_candles = df_candles.sort_values(by='time').reset_index(drop=True)
-            df_candles['time'] = pd.to_datetime(df_candles['time'], unit='s', utc=True)
-            df_candles.set_index('time', inplace=True)
-            df_candles.index = df_candles.index.floor('1s')
-
-            if period < 60:
-                df_resampled = df_candles['price'].resample(f'{period}s').ohlc()
-                df_resampled.reset_index(inplace=True)
-
-                return df_resampled
-            elif period > 30:
-                df_candles.reset_index(inplace=True)
-                ts = datetime.timestamp(df_candles.loc[len(df_candles)-1]['time'])
-                for i in range(0, len(ext_resampled)):
-                    ts2 = datetime.timestamp(ext_resampled.loc[i]['time'])
-                    if ts2 > ts:
-                        data = {'time': ext_resampled.loc[i]['time'], 'open': ext_resampled.loc[i]['open'], 'close': ext_resampled.loc[i]['close'], 'high': ext_resampled.loc[i]['high'], 'low': ext_resampled.loc[i]['low']}
-                        df_candles = df_candles._append(data, ignore_index = True)
-                df_candles.reset_index(inplace=True)
-                return df_candles
-            else:
-                df_candles.reset_index(inplace=True)
-                return df_candles
-
-        except:
-            # print("No except")
-            global_value.logger("No except", "DEBUG")
-            return None
-
     @staticmethod
     def process_data_history(data, period):
         df = pd.DataFrame(data['history'], columns=['timestamp', 'price'])
-        df['datetime'] = pd.to_datetime(df['timestamp'], unit='s', utc=True)
+        df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
         df['minute_rounded'] = df['datetime'].dt.floor(f'{period / 60}min')
 
         ohlcv = df.groupby('minute_rounded').agg(
@@ -362,7 +265,69 @@ class PocketOption:
     def sync_datetime(self):
         return self.api.synced_datetime
 
-    def get_candles(self, active, period, start_time=None, count=6000, count_request=1):
+    def get_history(self, active, period, start_time=None, end_time=None, count_request=1):
+        try:
+            if start_time is None:
+                time_sync = self.get_server_timestamp()
+                time_red = self.last_time(time_sync, period)
+            else:
+                time_red = start_time
+                time_sync = self.get_server_timestamp()
+
+            all_candles = []
+
+            time_red = int(datetime.now().timestamp())
+            while True:
+                try:
+                    self.api.history_data = None
+                    self.api.getcandles(active, period, time_red)
+
+                    for i in range(1, 100):
+                        if self.api.history_data is None:
+                            time.sleep(0.1)
+                        elif self.api.history_data is not None or i == 99:
+                            break
+
+                    if self.api.history_data is not None:
+                        all_candles.extend(self.api.history_data)
+                        if end_time is None:
+                            break
+                        else:
+                            self.api.history_data = sorted(self.api.history_data, key=lambda x: x["time"])
+                            _ = int(self.api.history_data[len(self.api.history_data)-1]["time"]) - int(self.api.history_data[0]["time"])
+                            time_red = time_red - _
+                            if time_red < end_time:
+                                break
+                except Exception as e:
+                    global_value.logger(str(e), "ERROR")
+            all_candles = sorted(all_candles, key=lambda x: x["time"])
+            global_value.set_cache(global_value.pairs[active]["id"], all_candles)
+            return True
+
+            if len(his['candles']) > 0:
+                for can in his['candles']:
+                    c = {'time': can[0], 'open': can[1], 'high': can[3], 'low': can[4], 'close': can[2]}
+                    c0.append(c)
+                c0 = sorted(c0, key=lambda x: x["time"])
+            for hist in his['history']:
+                h = {'time': hist[0], 'price': hist[1]}
+                c1.append(h)
+            c1 = sorted(c1, key=lambda x: x["time"])
+            if active in global_value.pairs:
+                global_value.pairs[active]['history'] = c1
+                if len(c0) > 0:
+                    df = pd.DataFrame(c0)
+                    df = df.sort_values(by='time').reset_index(drop=True)
+                    df['time'] = pd.to_datetime(df['time'], unit='s')
+                    df.set_index('time', inplace=True)
+                    df.reset_index(inplace=True)
+                    global_value.pairs[active]['dataframe'] = df
+
+        except:
+            global_value.logger("except get_candles", "DEBUG")
+            return False
+
+    def get_candles(self, active, period, start_time=None, count=6000, count_request=3):
         try:
             if start_time is None:
                 time_sync = self.get_server_timestamp()
@@ -375,7 +340,9 @@ class PocketOption:
 
             self.api.history_new = None
 
+            i = 0
             while True:
+                i += 1
                 try:
                     self.api.change_symbol(active, period)
 
@@ -393,12 +360,13 @@ class PocketOption:
                     # logging.error(e)
                     global_value.logger(str(e), "ERROR")
             c0, c1 = [], []
-            if period < 60:
-                self.api.history_data = None
-                #time_red = his['history'][0][0]
-
+            if period < 60 or count_request > 1:
+                time_red = int(datetime.now().timestamp())
+                x = 0
                 while True:
+                    x += 1
                     try:
+                        self.api.history_data = None
                         self.api.getcandles(active, period, time_red)
 
                         for i in range(1, 100):
@@ -409,17 +377,21 @@ class PocketOption:
 
                         if self.api.history_data is not None:
                             c1.extend(self.api.history_data)
-                            break
+                            if x == count_request:
+                                break
+                            else:
+                                self.api.history_data = sorted(self.api.history_data, key=lambda x: x["time"])
+                                _ = int(self.api.history_data[len(self.api.history_data)-1]["time"]) - int(self.api.history_data[0]["time"])
+                                time_red = time_red - _
 
                     except Exception as e:
                         # logger.error(e)
                         global_value.logger(str(e), "ERROR")
-
             if len(his['candles']) > 0:
                 for can in his['candles']:
                     c = {'time': can[0], 'open': can[1], 'high': can[3], 'low': can[4], 'close': can[2]}
                     c0.append(c)
-                c0 = sorted(c0, key=lambda x: x["time"])
+            c0 = sorted(c0, key=lambda x: x["time"])
             for hist in his['history']:
                 h = {'time': hist[0], 'price': hist[1]}
                 c1.append(h)
@@ -429,72 +401,12 @@ class PocketOption:
                 if len(c0) > 0:
                     df = pd.DataFrame(c0)
                     df = df.sort_values(by='time').reset_index(drop=True)
-                    df['time'] = pd.to_datetime(df['time'], unit='s', utc=True)
+                    df['time'] = pd.to_datetime(df['time'], unit='s')
                     df.set_index('time', inplace=True)
                     df.reset_index(inplace=True)
                     global_value.pairs[active]['dataframe'] = df
             return True
 
-            df1 = pd.DataFrame(c1)
-            df1 = df1.sort_values(by='time').reset_index(drop=True)
-            df1['time'] = pd.to_datetime(df1['time'], unit='s', utc=True)
-            df1.set_index('time', inplace=True)
-
-            df = df1['price'].resample(f'{period}s').ohlc()
-            df.reset_index(inplace=True)
-
-            ts = datetime.timestamp(df.loc[0]['time'])
-            for x in range(0, len(df0)):
-                ts2 = datetime.timestamp(df0.loc[x]['time'])
-                if ts2 < ts:
-                    df = df._append(df0.loc[x], ignore_index = True)
-                else:
-                    break
-            df = df.sort_values(by='time').reset_index(drop=True)
-            df.set_index('time', inplace=True)
-            df.reset_index(inplace=True)
-
-            return df
-
-            for _ in range(count_request):
-                self.api.history_data = None
-
-                while True:
-                    try:
-                        self.api.getcandles(active, period, time_red)
-
-                        for i in range(1, 100):
-                            if self.api.history_data is None:
-                                time.sleep(0.1)
-                            elif self.api.history_data is not None or i == 99:
-                                break
-
-                        if self.api.history_data is not None:
-                            all_candles.extend(self.api.history_data)
-                            break
-
-                    except Exception as e:
-                        # logging.error(e)
-                        global_value.logger(str(e), "ERROR")
-
-                all_candles = sorted(all_candles, key=lambda x: x["time"])
-
-                if all_candles:
-                    time_red = all_candles[0]["time"]
-
-            df_candles = pd.DataFrame(all_candles)
-
-            df_candles = df_candles.sort_values(by='time').reset_index(drop=True)
-            df_candles['time'] = pd.to_datetime(df_candles['time'], unit='s', utc=True)
-            df_candles.set_index('time', inplace=True)
-            df_candles.index = df_candles.index.floor('1s')
-
-            df_resampled = df_candles['price'].resample(f'{period}s').ohlc()
-
-            df_resampled.reset_index(inplace=True)
-
-            return df_resampled
         except:
-            # print("In except")
-            global_value.logger("In except", "DEBUG")
-            return None
+            global_value.logger("except get_candles", "DEBUG")
+            return False

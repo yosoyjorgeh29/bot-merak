@@ -19,7 +19,6 @@ class Buyv3(Base):
         }
 
         message = ["openOrder", data_dict]
-        print(message)
 
         self.send_websocket_request(self.name, message, str(request_id))
 

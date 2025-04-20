@@ -14,10 +14,7 @@ sync = TimeSynchronizer()
 
 
 async def on_open():
-    """Method to process websocket open."""
-    # print("CONNECTED SUCCESSFUL")
     global_value.logger("CONNECTED SUCCESSFUL", "INFO")
-    # logger.debug("Websocket client connected.")
     global_value.logger("Websocket client connected.", "DEBUG")
     global_value.websocket_is_connected = True
 
@@ -34,29 +31,21 @@ async def send_ping(ws):
 async def process_message(message):
     try:
         data = json.loads(message)
-        # print(f"Received message: {data}")
         global_value.logger("Received message: %s" % str(data), "DEBUG")
 
-        # Process the message depending on the type
         if isinstance(data, dict) and 'uid' in data:
             uid = data['uid']
-            # print(f"UID: {uid}")
             global_value.logger("UID: %s" % str(uid), "DEBUG")
         elif isinstance(data, list) and len(data) > 0:
             event_type = data[0]
             event_data = data[1]
-            # print(f"Event type: {event_type}, Event data: {event_data}")
             global_value.logger("Event type: %s, Event data: %s" %(str(event_type), str(event_data)), "DEBUG")
-            # Here you can add more logic to handle different types of events
 
     except json.JSONDecodeError as e:
-        # print(f"JSON decode error: {e}")
         global_value.logger("JSON decode error: %s" % str(e), "ERROR")
     except KeyError as e:
-        # print(f"Key error: {e}")
         global_value.logger("Key error: %s" % str(e), "ERROR")
     except Exception as e:
-        # print(f"Error processing message: {e}")
         global_value.logger("Error processing message: %s" % str(e), "ERROR")
 
 
@@ -96,7 +85,6 @@ class WebsocketClient(object):
 
         while not global_value.websocket_is_connected:
             for url in self.region.get_regions(global_value.DEMO):
-                # print(url)
                 global_value.logger(str(url), "INFO")
                 try:
                     async with websockets.connect(
@@ -182,6 +170,7 @@ class WebsocketClient(object):
 
             elif "requestId" in message and message["requestId"] == 'buy':
                 global_value.order_data = message
+                #global_value.open_orders.insert(0, message)
 
             elif self.updateClosedDeals and isinstance(message, list):
                 global_value.closed_deals = message
@@ -189,6 +178,7 @@ class WebsocketClient(object):
 
             elif self.successcloseOrder and isinstance(message, dict):
                 self.api.order_async = message
+                #global_value.closed_orders.insert(0, message)
                 self.successcloseOrder = False
 
             elif self.loadHistoryPeriod and isinstance(message, dict):

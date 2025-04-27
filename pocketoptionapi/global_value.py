@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 
 rp = os.path.normpath(os.path.dirname(os.path.abspath(__file__)) + '/../')
 dp = os.path.join(rp, 'history')

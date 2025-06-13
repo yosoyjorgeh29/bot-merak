@@ -44,12 +44,12 @@ def get_payout():
                 #if pair[14] == True and pair[5] >= min_payout and "_otc" not in pair[1] and pair[3] == "currency":         # Get all non OTC Currencies with min_payout
                 #if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:                                       # Get all OTC Markets with min_payout
                 #if pair[14] == True and pair[3] == "cryptocurrency" and pair[5] >= min_payout and "_otc" not in pair[1]:   # Get all non OTC Cryptocurrencies
-                if pair[14] == True:                                                                                       # Get All that online
-                    p = {}
-                    p['id'] = pair[0]
-                    p['payout'] = pair[5]
-                    p['type'] = pair[3]
-                    global_value.pairs[pair[1]] = p
+                #if pair[14] == True:                                                                                       # Get All that online
+                p = {}
+                p['id'] = pair[0]
+                p['payout'] = pair[5]
+                p['type'] = pair[3]
+                global_value.pairs[pair[1]] = p
         return True
     except:
         return False

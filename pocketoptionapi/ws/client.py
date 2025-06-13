@@ -183,16 +183,17 @@ class WebsocketClient(object):
 
             elif self.loadHistoryPeriod and isinstance(message, dict):
                 self.loadHistoryPeriod = False
-                self.api.history_data = message["data"]
+                self.api.history_data = sorted(message["data"], key=lambda x: x["time"])
 
             elif self.updateStream and isinstance(message, list):
                 self.updateStream = False
                 if len(message[0]) == 3:
                     self.api.time_sync.server_timestamp = message[0][1]
+                    h = {'time': message[0][1], 'price': message[0][2]}
                     if message[0][0] in global_value.pairs:
                         if 'history' in global_value.pairs[message[0][0]]:
-                            h = {'time': message[0][1], 'price': message[0][2]}
                             global_value.pairs[message[0][0]]['history'].append(h)
+                    global_value.set_csv(message[0][0], [h])
 
             elif self.updateHistoryNew and isinstance(message, dict):
                 self.updateHistoryNew = False

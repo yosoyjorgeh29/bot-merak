@@ -276,7 +276,7 @@ class PocketOption:
 
             all_candles = []
 
-            time_red = int(datetime.now().timestamp())
+            # time_red = int(datetime.now().timestamp())
             while True:
                 try:
                     self.api.history_data = None
@@ -289,19 +289,15 @@ class PocketOption:
                             break
 
                     if self.api.history_data is not None:
-                        all_candles.extend(self.api.history_data)
+                        global_value.set_csv(self.api.history_data[0]['asset'], self.api.history_data)
                         if end_time is None:
                             break
-                        else:
-                            self.api.history_data = sorted(self.api.history_data, key=lambda x: x["time"])
-                            _ = int(self.api.history_data[len(self.api.history_data)-1]["time"]) - int(self.api.history_data[0]["time"])
-                            time_red = time_red - _
-                            if time_red < end_time:
-                                break
+                        _ = int(self.api.history_data[len(self.api.history_data)-1]["time"]) - int(self.api.history_data[0]["time"])
+                        time_red = time_red - _
+                        if time_red < end_time:
+                            break
                 except Exception as e:
                     global_value.logger(str(e), "ERROR")
-            all_candles = sorted(all_candles, key=lambda x: x["time"])
-            global_value.set_cache(global_value.pairs[active]["id"], all_candles)
             return True
 
             if len(his['candles']) > 0:
@@ -380,7 +376,7 @@ class PocketOption:
                             if x == count_request:
                                 break
                             else:
-                                self.api.history_data = sorted(self.api.history_data, key=lambda x: x["time"])
+                                #self.api.history_data = sorted(self.api.history_data, key=lambda x: x["time"])
                                 _ = int(self.api.history_data[len(self.api.history_data)-1]["time"]) - int(self.api.history_data[0]["time"])
                                 time_red = time_red - _
 

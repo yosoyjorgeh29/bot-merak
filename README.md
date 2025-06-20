@@ -35,13 +35,10 @@ pip install git+https://github.com/Mastaaa1987/PocketOptionAPI-v2.git
 
 ```python
 from pocketoptionapi.stable_api import PocketOption
-import logging
-
-# Configure logging (optional)
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s')
+import pocketoptionapi.global_value as global_value
 
 # Session configuration
-ssid = """42["auth",{"session":"sua_sessao_aqui","isDemo":1,"uid":seu_uid_aqui,"platform":2}]"""
+ssid = """42["auth",{"session":"asdasdasddsad","isDemo":1,"uid":12345465,"platform":2}]"""
 demo = True  # True for demo account, False for real account
 
 # Initialize API
@@ -55,44 +52,23 @@ print(connect)
 saldo = api.get_balance()
 print(f"💰 Saldo: ${saldo:.2f}")
 
-# Perform operation
-result = api.buy(
-    amount=10,           # Value in $
-    active="EURUSD_otc", # Currency pair (note the _otc suffix)
-    action="call",       # "call" (High) or "put" (Low)
-    expirations=60       # Expiration in seconds
-)
 
-if result["success"]:
-    print(f"✅ Operation performed: ID {result['order_id']}")
 ```
 
 ## 🎯 Advanced Features
 
-### Real-Time WebSocket
+### Get History Data
 ```python
-# Callback for real-time pricing
-@api.on_price_update
-def price_handler(data):
-    print(f"📊 {data['asset']}: ${data['price']}")
-
-# Callback for operation results
-@api.on_trade_complete
-def trade_handler(result):
-    print(f"💫 Result: {'✅ Gain' if result['win'] else '❌ Loss'}")
-```
-
-### Technical Analysis
-```python
-# Get candle history
-candles = api.get_candles(
-    asset="EURUSD_otc",  # Note the _otc suffix for OTC assets
-    interval=60,         # Interval in seconds
-)
-
-# Data analysis
-print(type(candles)) # pandas Dataframe
-print(f"📈 Moving average: {candles['close'].rolling(20).mean().iloc[-1]:.5f}")
+pair = "EURUSD_otc"
+period = 60
+days = 1
+time_start = int(datetime.now().timestamp())
+time_end = time_start - 86400 * days
+df = api.get_history(
+    pair, 
+    period, 
+    start_time=time_start, 
+    end_time=time_end)
 ```
 
 ## 🔧 Settings

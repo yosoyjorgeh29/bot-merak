@@ -27,6 +27,9 @@ days = 365
 min_payout = 80
 period = 60
 expiration = 60
+
+pair_list = ["#AAPL_otc"]
+
 api = PocketOption(ssid,demo)
 
 # Connect to API
@@ -45,17 +48,27 @@ def get_payout():
                 #if pair[14] == True and pair[5] >= min_payout and "_otc" in pair[1]:                                       # Get all OTC Markets with min_payout
                 #if pair[14] == True and pair[3] == "cryptocurrency" and pair[5] >= min_payout and "_otc" not in pair[1]:   # Get all non OTC Cryptocurrencies
                 #if pair[14] == True:                                                                                       # Get All that online
-                p = {}
-                p['id'] = pair[0]
-                p['payout'] = pair[5]
-                p['type'] = pair[3]
-                global_value.pairs[pair[1]] = p
+                if len(pair_list) > 0:
+                    if pair[1] in pair_list:
+                        p = {}
+                        p['id'] = pair[0]
+                        p['payout'] = pair[5]
+                        p['type'] = pair[3]
+                        global_value.pairs[pair[1]] = p
+                else:
+                    if pair[14] == True:
+                        p = {}
+                        p['id'] = pair[0]
+                        p['payout'] = pair[5]
+                        p['type'] = pair[3]
+                        global_value.pairs[pair[1]] = p
+                        break
         return True
     except:
         return False
 
 
-def prepare_get_history():
+def prepare():
     try:
         data = get_payout()
         if data: return True
@@ -64,39 +77,103 @@ def prepare_get_history():
         return False
 
 
-def start_get_history():
+def get_history():
+    try:
+        i = 0
+        for pair in global_value.pairs:
+            i += 1
+            df = api.get_candles(pair, period)
+            global_value.logger('%s (%s/%s)' % (str(pair), str(i), str(len(global_value.pairs))), "INFO")
+            time.sleep(1)
+        return True
+    except:
+        return False
+
+
+def save_live_data():
+    for pair in global_value.pairs:
+        if 'history' in global_value.pairs[pair]:
+            history = []
+            history.extend(global_value.pairs[pair]['history'])
+            df1 = pd.DataFrame(history).reset_index(drop=True)
+            df1 = df1.sort_values(by='time').reset_index(drop=True)
+            df1['time'] = pd.to_datetime(df1['time'], unit='s')
+            df1.set_index('time', inplace=True)
+            # df1.index = df1.index.floor('1s')
+
+            df = df1['price'].resample(f'{period}s').ohlc()
+            df.reset_index(inplace=True)
+            df = df.loc[df['time'] < datetime.fromtimestamp(int(datetime.now().timestamp()) - int(datetime.now().second) + 60)]
+            df['ts'] = df.time.values.astype(np.int64) // 10 ** 9
+            if global_value.check_csv(pair, 'data'):
+                csv = global_value.get_csv(pair, 'data')
+                d = csv[1].split(',')[0]
+                val = []
+                for i in range(1, len(df)):
+                    if int(df.loc[len(df)-i]['ts']) > int(d):
+                        val.insert(0, {'time': df.loc[len(df)-i]['ts'], 'open': df.loc[len(df)-i]['open'], 'close': df.loc[len(df)-i]['close'], 'high': df.loc[len(df)-i]['high'], 'low': df.loc[len(df)-i]['low']})
+                    else:
+                        break
+                if len(val) > 0:
+                    if len(val) == 1:
+                        val.insert(0, {'time': 0, 'open': 0, 'close': 0, 'high': 0, 'low': 0})
+                    global_value.set_csv(pair, val)
+                print(df.loc[len(df)-1]['time'], df.loc[len(df)-1]['ts'])
+    return True
+
+
+def save_history():
+    I = 0
+    for pair in global_value.pairs:
+        offset = int(datetime.now().timestamp()) - int(datetime.utcnow().timestamp())
+        time_start = int(datetime.now().timestamp()) + offset
+        time_red = int(datetime.now().timestamp()) + offset - 86400 * days
+        I += 1
+        global_value.logger('! %s (%s/%s)' % (str(pair), str(I), str(len(global_value.pairs))), "INFO")
+        if global_value.check_csv(pair, 'data'):
+            csv = global_value.get_csv(pair, 'data')
+            d = csv[1].split(',')[0]
+            if int(d) < time_start:
+                time_redd = int(d)
+                df = api.get_history(pair, period, start_time=time_start, end_time=time_redd)
+            if csv[len(csv)-1] == '': c = csv[len(csv)-2].split(',')[0]
+            else: c = csv[len(csv)-1].split(',')[0]
+            if int(c) > time_red:
+                time_start = int(c)
+                df = api.get_history(pair, period, start_time=time_start, end_time=time_red)
+        else:
+            df = api.get_history(pair, period, start_time=time_start, end_time=time_red)
+    return True
+
+
+def start():
     while global_value.websocket_is_connected is False:
         time.sleep(0.1)
     time.sleep(2)
     saldo = api.get_balance()
     global_value.logger('Account Balance: %s' % str(saldo), "INFO")
-    prep = prepare_get_history()
+    prep = prepare()
     if prep:
-        i = 0
-        for pair in global_value.pairs:
-            time_start = int(datetime.now().timestamp())
-            time_red = int(datetime.now().timestamp()) - 86400 * days
-            i += 1
-            global_value.logger('! %s (%s/%s)' % (str(pair), str(i), str(len(global_value.pairs))), "INFO")
-            if global_value.check_csv(pair, 'data'):
-                csv = global_value.get_csv(pair, 'data')
-                d = csv[1].split(',')[0]
-                if csv[len(csv)-1] == '': c = csv[len(csv)-2].split(',')[0]
-                else: c = csv[len(csv)-1].split(',')[0]
-                if int(c) > time_red: time_start = int(c)
-                else: time_start = 0
-                if not time_start == 0:
-                    df = api.get_history(pair, period, start_time=time_start, end_time=time_red)
-                    if int(d) < time_start:
-                        time_red = int(d)
-                        if not time_start == 0:
-                            df = api.get_history(pair, period, start_time=time_start, end_time=time_red)
-            else:
-                df = api.get_history(pair, period, start_time=time_start, end_time=time_red)
+        his = save_history()
+        if his:
+            start = get_history() # This Command started to collecting Live Tick Data ...
+            if start:
+                save = save_live_data()
+                if save:
+                    print('Data Sucessful saved ...')
+                    print('Now sleeping 60 sec. (to hold the websocket connection ...)')
+                    time.sleep(60)
+                    save = save_live_data()
+                    if save:
+                        print('Data Sucessful saved ...')
+                        print('Exit now!')
+    return
+
+
 
 
 if __name__ == "__main__":
-    start_get_history()
+    start()
     end_counter = time.perf_counter()
     rund = math.ceil(end_counter - start_counter)
     # print(f'CPU-gebundene Task-Zeit: {rund} {end_counter - start_counter} Sekunden')

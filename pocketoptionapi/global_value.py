@@ -98,12 +98,12 @@ def set_csv(key, value, path=None):
                     os.remove(file+".csv")
                     csv_file = open(file+".csv", "w")
                     csv_file.write("%s\n" % str(csv[0]))
-                    for v in range(0, len(value)-1):
-                        if int(value[len(value)-1-v]['time']) > c:
-                            if 'price' in value[len(value)-1-v]:
-                                csv_file.write("%s,%s\n" %(str(value[len(value)-1-v]['time']), str(value[len(value)-1-v]['price'])))
+                    for v in range(1, len(value)):
+                        if int(value[len(value)-v]['time']) > c:
+                            if 'price' in value[len(value)-v]:
+                                csv_file.write("%s,%s\n" %(str(value[len(value)-v]['time']), str(value[len(value)-v]['price'])))
                             else:
-                                csv_file.write("%s,%s,%s,%s,%s\n" %(str(value[len(value)-1-v]['time']), str(value[len(value)-1-v]['open']), str(value[len(value)-1-v]['close']), str(value[len(value)-1-v]['high']), str(value[len(value)-1-v]['low'])))
+                                csv_file.write("%s,%s,%s,%s,%s\n" %(str(value[len(value)-v]['time']), str(value[len(value)-v]['open']), str(value[len(value)-v]['close']), str(value[len(value)-v]['high']), str(value[len(value)-v]['low'])))
                         else:
                             break
                     for i in range(1, len(csv)-1):

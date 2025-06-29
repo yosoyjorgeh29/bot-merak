@@ -1,13 +1,11 @@
 import os
 import logging
 import asyncio
-import time
-
-import requests
 import pandas as pd
 import numpy as np
 
 from datetime import datetime, timedelta
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.request import HTTPXRequest
 from telegram.ext import (
@@ -19,9 +17,32 @@ from telegram.ext import (
 )
 from ta.trend import ADXIndicator
 from tenacity import retry, stop_after_attempt, wait_exponential
+from loguru import logger
 
-# ── IMPORTAMOS LA API SÍNCRONA DE POCKETOPTION
-from pocketoptionapi.stable_api import PocketOption
+# Aquí añades la importación de la API de PocketOption
+from pocketoptionapi import PocketOption
+
+# ── CONFIG ────────────────────────────────────────────────────────────────────
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+PO_SS_ID       = os.environ.get("PO_SS_ID")
+IS_DEMO        = True  # o False si quieres cuenta real
+if not TELEGRAM_TOKEN or not PO_SS_ID:
+    raise RuntimeError("Faltan TELEGRAM_TOKEN o PO_SS_ID")
+
+# Instanciación correcta de la API:
+api_po = PocketOption(ssid=PO_SS_ID, demo=IS_DEMO)
+
+
+# ── CONFIG ────────────────────────────────────────────────────────────────────
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+PO_SS_ID       = os.environ.get("PO_SS_ID")
+IS_DEMO        = True  # o False si quieres cuenta real
+if not TELEGRAM_TOKEN or not PO_SS_ID:
+    raise RuntimeError("Faltan TELEGRAM_TOKEN o PO_SS_ID")
+
+# Instanciación correcta de la API:
+api_po = PocketOption(ssid=PO_SS_ID, demo=IS_DEMO)
+
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -32,7 +53,7 @@ if not TELEGRAM_TOKEN or not PO_SS_ID:
     raise RuntimeError("Faltan TELEGRAM_TOKEN o PO_SS_ID")
 
 # ── CREAMOS UNA INSTANCIA GLOBAL DE POCKETOPTION ───────────────────────────────
-api_po = PocketOption(ssid=PO_SS_ID, is_demo=IS_DEMO)
+api_po = PocketOption(ssid=PO_SS_ID, demo=IS_DEMO)
 api_po.connect()  # Conexión inicial (síncrona)
 
 # ── Conversación ──────────────────────────────────────────────────────────────
